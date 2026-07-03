@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบันทึกข้อมูลการทำงานประจำวัน</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Anuphan', sans-serif; }
+        .sticky-header th { position: sticky; top: 0; background-color: #334155; z-index: 10; }
+        .sticky-col { position: sticky; left: 0; background-color: #f8fafc; z-index: 5; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen text-slate-800">
+
+    <nav class="bg-slate-800 text-white shadow-md sticky top-0 z-50">
+        <div class="container mx-auto px-4 py-3 max-w-7xl flex justify-between items-center">
+            <div class="flex items-center gap-2 cursor-pointer" onclick="navigateTo('record')">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                <span class="font-bold text-sm md:text-base tracking-wide">ระบบบันทึกงานประจำวัน</span>
+            </div>
+            <div class="flex items-center gap-1 md:gap-3 text-xs md:text-sm">
+                <button onclick="navigateTo('record')" class="hover:text-indigo-300 font-medium px-2.5 py-1.5 rounded transition-colors" id="navRecordBtn">
+                    บันทึกข้อมูล
+                </button>
+                <button onclick="navigateTo('history')" class="hover:text-indigo-300 font-medium px-2.5 py-1.5 rounded transition-colors" id="navHistoryBtn">
+                    ประวัติการบันทึก
+                </button>
+                <button onclick="navigateTo('dashboard')" class="hover:text-indigo-300 font-medium px-2.5 py-1.5 rounded transition-colors" id="navDashboardBtn">
+                    Dashboard (ค่าเฉลี่ยรายวัน)
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-2 sm:px-4 py-4 md:py-6 max-w-7xl">
+        
+        <div id="page-record" class="main-page">
+            <div class="bg-gradient-to-r from-slate-800 to-indigo-900 rounded-2xl shadow-md p-4 md:p-6 mb-6 text-white flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                <div>
+                    <h1 class="text-xl md:text-2xl lg:text-3xl font-bold tracking-wide">ระบบบันทึกข้อมูลการทำงานประจำวัน</h1>
+                    <p class="text-slate-300 text-xs md:text-sm mt-1">คีย์จัดสรรกำลังพลรายส่วนงาน (กรณีคนย้ายมาช่วยงานให้พิมพ์วงเล็บแผนกเดิม เช่น: <span class="text-amber-300 font-semibold">นายสมชาย (เตรียมวัตถุดิบ)</span>)</p>
+                </div>
+                <div class="flex flex-col sm:flex-row flex-wrap items-center gap-3 w-full lg:w-auto">
+                    <div class="bg-white/10 backdrop-blur-md px-3 py-2 rounded-xl border border-white/20 flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+                        <label for="mainDeptSelect" class="text-xs md:text-sm font-semibold whitespace-nowrap text-amber-300">แผนกหลัก:</label>
+                        <select id="mainDeptSelect" onchange="generateFormByDepartment()" class="bg-slate-800 text-white border border-slate-600 rounded-lg px-2 py-1.5 text-xs md:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-amber-400 w-full sm:w-48">
+                            <option value="">-- เลือกแผนก --</option>
+                            <option value="เตรียมวัตถุดิบ">เตรียมวัตถุดิบ</option>
+                            <option value="ผลิต 1 (พริกเผา)">ผลิต 1 (พริกเผา)</option>
+                            <option value="ผลิต 2 (ซอสหลัก-ซอสรอง)">ผลิต 2 (ซอสหลัก-ซอสรอง)</option>
+                            <option value="ผลิต-บรรจุ 3">ผลิต-บรรจุ 3</option>
+                            <option value="ผลิต-บรรจุ 4">ผลิต-บรรจุ 4</option>
+                            <option value="บรรจุ 1 (พริกเผา)">บรรจุ 1 (พริกเผา)</option>
+                            <option value="บรรจุ 2 (ซอสหลัก-ซอสรอง)">บรรจุ 2 (ซอสหลัก-ซอสรอง)</option>
+                            <option value="แพ็คพิเศษ">แพ็คพิเศษ</option>
+                        </select>
+                    </div>
+                    <div class="bg-white/10 backdrop-blur-md px-3 py-2 rounded-xl border border-white/20 flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+                        <label for="docDate" class="text-xs md:text-sm font-semibold whitespace-nowrap">วันที่ทำงาน:</label>
+                        <input type="date" id="docDate" class="bg-slate-800 text-white border border-slate-600 rounded-lg px-2 py-1.5 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 w-full">
+                    </div>
+                    <div class="bg-purple-200/10 backdrop-blur-md px-3 py-2 rounded-xl border border-white/20 flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+                        <label for="docShift" class="text-xs md:text-sm font-semibold whitespace-nowrap text-amber-300">กะ:</label>
+                        <select id="docShift" class="bg-slate-800 text-white border border-slate-600 rounded-lg px-2 py-1.5 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-amber-400 w-full">
+                            <option value="กะเช้า">กะเช้า</option>
+                            <option value="กะบ่าย">กะบ่าย</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <form id="productionForm" class="bg-white rounded-2xl md:rounded-3xl shadow-sm border border-slate-200 overflow-hidden mb-10">
+                <div id="emptyState" class="p-12 text-center text-slate-400 bg-slate-50">
+                    <div class="flex flex-col items-center justify-center gap-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <span class="text-base font-medium text-slate-500">กรุณาเลือกแผนกหลักที่เมนูด้านบน เพื่อเริ่มต้นกรอกข้อมูล</span>
+                    </div>
+                </div>
+
+                <div id="totalStaffConfigContainer" class="bg-amber-50 border-b border-slate-200 p-4 hidden">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="text-xs font-bold text-amber-800 flex items-center gap-1.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            จำนวนพนักงานในทั้งหมดแผนก <span id="configDeptLabel" class="text-indigo-700 underline font-extrabold"></span> :
+                        </div>
+                        <div class="w-full sm:w-48 flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-amber-300">
+                            <input type="number" id="deptTotalStaffInput" min="0" max="500" value="0" class="w-full text-center text-sm font-bold text-indigo-700 focus:outline-none">
+                            <span class="text-xs font-semibold text-slate-500 whitespace-nowrap">คน</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="desktopContainer" class="hidden md:block overflow-x-auto w-full">
+                    <table class="w-full text-left border-collapse table-fixed" id="desktopTable"></table>
+                </div>
+
+                <div id="mobileContainer" class="block md:hidden p-4 space-y-4 bg-slate-50"></div>
+                
+                <div id="submitContainer" class="bg-slate-50 px-4 md:px-6 py-4 flex flex-col sm:flex-row justify-between items-center border-t border-slate-200 gap-3 hidden">
+                    <span class="text-xs text-slate-500 font-medium">เมื่อบันทึกข้อมูล พนักงานที่มีการวงเล็บแผนกท้ายชื่อจะถูกสรุปเป็น "ยอดคนโยกย้าย" ใน Dashboard ทันที</span>
+                    <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-6 py-3 rounded-xl shadow-sm hover:shadow transition-all duration-150 flex items-center gap-2 w-full sm:w-auto justify-center active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        บันทึกข้อมูลและดาวน์โหลด Excel
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div id="page-history" class="main-page hidden">
+            <div class="bg-white rounded-2xl shadow-sm p-4 md:p-6 border border-slate-200 mb-10">
+                <div class="flex flex-col lg:flex-row justify-between items-start lg:items-center pb-4 mb-4 border-b border-slate-100 gap-4">
+                    <div>
+                        <h2 class="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            ประวัติการลงบันทึกกำลังพล
+                        </h2>
+                    </div>
+                    
+                    <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto bg-slate-50 p-2 rounded-xl border border-slate-200">
+                        <span class="text-xs font-bold text-slate-500 pl-1">ช่วงวันที่:</span>
+                        <input type="date" id="historyStartDate" onchange="displayLogs()" class="border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 bg-white focus:outline-none">
+                        <span class="text-xs text-slate-400">ถึง</span>
+                        <input type="date" id="historyEndDate" onchange="displayLogs()" class="border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 bg-white focus:outline-none">
+                        <button onclick="resetHistoryDates()" class="text-[11px] bg-slate-200 hover:bg-slate-300 text-slate-600 font-semibold px-2 py-1 rounded-md transition-colors">
+                            ล้างช่วงเวลา
+                        </button>
+                        <button onclick="clearLogs()" class="text-[11px] bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 font-semibold px-2 py-1 rounded-md transition-colors ml-auto lg:ml-2">
+                            ล้างประวัติทั้งหมด
+                        </button>
+                    </div>
+                </div>
+
+                <div class="overflow-x-auto w-full">
+                    <table class="w-full text-left text-xs md:text-sm border-collapse min-w-[800px]">
+                        <thead>
+                            <tr class="bg-slate-50 text-slate-600 border-b border-slate-200 font-bold">
+                                <th class="p-3 w-28">วันที่ทำงาน</th>
+                                <th class="p-3 w-24">กะ</th>
+                                <th class="p-3 w-40">แผนกหลัก</th>
+                                <th class="p-3 w-44">ส่วนงานย่อย</th>
+                                <th class="p-3 w-24 text-center">มาทำงานจริง</th>
+                                <th class="p-3">รายชื่อผู้ปฏิบัติงาน</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logTableBody" class="divide-y divide-slate-100 text-slate-600"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-dashboard" class="main-page hidden">
+            <div class="bg-white rounded-2xl border border-slate-200 p-4 mb-6 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        Dashboard สรุปอัตราคนขาดและการโยกย้ายกำลังพล <span class="text-indigo-600 underline">(ค่าเฉลี่ยต่อวัน)</span>
+                    </h1>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200">
+                    <div class="flex items-center gap-1.5">
+                        <span class="text-xs font-bold text-slate-500 pl-1">ช่วงวันที่:</span>
+                        <input type="date" id="dashStartDate" onchange="calculateDashboard()" class="border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 bg-white focus:outline-none">
+                        <span class="text-xs text-slate-400">ถึง</span>
+                        <input type="date" id="dashEndDate" onchange="calculateDashboard()" class="border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 bg-white focus:outline-none">
+                        <button onclick="resetDashDates()" class="text-[11px] bg-slate-200 hover:bg-slate-300 text-slate-600 font-semibold px-2 py-1 rounded-md transition-colors mr-2">
+                            ล้างช่วงเวลา
+                        </button>
+                    </div>
+                    <div class="border-l border-slate-300 h-4 mx-1 hidden sm:block"></div>
+                    <select id="dashFilterShift" onchange="calculateDashboard()" class="border border-slate-300 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 bg-white focus:outline-none">
+                        <option value="ทั้งหมด">แสดงทุกกะรวมกัน</option>
+                        <option value="กะเช้า">เฉพาะกะเช้า</option>
+                        <option value="กะบ่าย">เฉพาะกะบ่าย</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
+                <div class="bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl p-4 text-white shadow-sm">
+                    <div class="text-xs font-medium text-indigo-100 uppercase">มาทำงานจริงเฉลี่ย / วัน</div>
+                    <div class="text-2xl font-bold mt-1" id="dashTotalStaff">0 คน</div>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                    <div class="text-xs font-medium text-slate-400 uppercase">โควต้าพนักงานเฉลี่ย / วัน</div>
+                    <div class="text-2xl font-bold text-slate-800 mt-1" id="dashTotalRequired">0 คน</div>
+                </div>
+                <div class="bg-rose-50 border border-rose-200 rounded-2xl p-4 shadow-sm">
+                    <div class="text-xs font-medium text-rose-500 uppercase font-bold">ยอดคนขาดเฉลี่ย / วัน</div>
+                    <div class="text-2xl font-bold text-rose-600 mt-1" id="dashTotalMissing">0 คน</div>
+                </div>
+                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 shadow-sm">
+                    <div class="text-xs font-medium text-amber-600 uppercase font-bold">ย้ายช่วยงานเฉลี่ย / วัน</div>
+                    <div class="text-2xl font-bold text-amber-700 mt-1" id="dashTotalBorrowed">0 คน</div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm mb-6">
+                <div class="mb-4 border-b border-slate-100 pb-3 flex justify-between items-center">
+                    <h3 class="text-sm font-bold text-slate-700">แผนภูมิสรุปรายแผนกหลัก <span class="text-indigo-600 underline">เฉลี่ยต่อวัน (ปัดเศษจำนวนเต็ม)</span> ในช่วงเวลาที่เลือก</h3>
+                    <span id="countedDaysLabel" class="text-xs font-semibold bg-slate-100 text-slate-600 px-2.5 py-1 rounded-lg">คำนวณจากฐานข้อมูล: 0 วัน</span>
+                </div>
+                <div class="space-y-5" id="chartGraphContainer"></div>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 p-4 md:p-6 shadow-sm mb-10">
+                <div class="mb-4 border-b border-slate-100 pb-3">
+                    <h3 class="text-sm font-bold text-slate-700 flex items-center gap-1.5">
+                        <span class="inline-block w-2.5 h-2.5 bg-amber-500 rounded-full"></span>
+                        สรุปสถิติการโยกย้ายกำลังพลข้ามแผนก <span class="text-indigo-600 underline">เฉลี่ยต่อวัน</span> และบันทึกประวัติรายชื่อ
+                    </h3>
+                </div>
+
+                <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-5">
+                    <div class="text-xs font-bold text-slate-600 mb-4 flex items-center justify-between">
+                        <span>แผนภูมิเปรียบเทียบ อัตราการโยกย้ายกำลังพล <span class="text-indigo-600 font-bold">เฉลี่ยต่อวัน (คน/วัน)</span></span>
+                        <div class="flex gap-4 font-medium text-[11px]">
+                            <span class="flex items-center gap-1"><span class="w-3 h-3 bg-emerald-500 rounded"></span> ย้ายเข้ามาช่วย (Borrowed)</span>
+                            <span class="flex items-center gap-1"><span class="w-3 h-3 bg-orange-400 rounded"></span> ย้ายออกไปช่วยที่อื่น (Loaned)</span>
+                        </div>
+                    </div>
+                    <div class="space-y-4" id="transferGraphContainer"></div>
+                </div>
+
+                <div class="overflow-x-auto w-full">
+                    <table class="w-full text-left text-xs md:text-sm border-collapse">
+                        <thead>
+                            <tr class="bg-amber-50 text-amber-800 border-b border-amber-200 font-bold">
+                                <th class="p-2.5 w-24">วันที่ทำงาน</th>
+                                <th class="p-2.5 w-32">ชื่อพนักงาน</th>
+                                <th class="p-2.5 w-40">แผนกเดิม (ต้นสังกัด)</th>
+                                <th class="p-2.5 w-40">แผนกที่ไปช่วยงาน</th>
+                                <th class="p-2.5">ส่วนงานย่อยที่ปฏิบัติงาน</th>
+                                <th class="p-2.5 w-24 text-center">กะทำงาน</th>
+                            </tr>
+                        </thead>
+                        <tbody id="borrowedStaffTableBody" class="divide-y divide-slate-100 text-slate-600">
+                            <tr>
+                                <td colspan="6" class="p-4 text-center text-slate-400">ไม่มีข้อมูลการโยกย้ายกำลังพลในช่วงเวลานี้</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const departmentData = {
+            "เตรียมวัตถุดิบ": ["ชั่งสาร", "เทน้ำตาล","เทถั่ว","ล้างพริก", "ล้างหอม", "บด-ตากหอม", "อบ-แซะหอม", "บดกระเทียม"],
+            "ผลิต 1 (พริกเผา)": ["ทอดพริก", "ทอดถั่ว", "ทอดหอม/กระเทียม", "ทอดหอมสูญญากาศ","ต้มน้ำปลา", "บดพริกเผา", "ผสมน้ำมัน"],
+            "ผลิต 2 (ซอสหลัก-ซอสรอง)": ["ต้ม", "เตรียมวัตถุดิบ"],
+            "ผลิต-บรรจุ 3": ["ต้ม/ผัด/สกัด", "บดพริกเผา", "บด/เตรียมวัตถุดิบ", "บรรจุหลอดบีบ", "บรรจุพริกถ้วย", "บรรจุเบเกอรี่", "บรรจุพริกแกง", "บรรจุอื่นๆ", "ยิงวันที่", "แพ็คพริกถ้วย"],
+            "ผลิต-บรรจุ 4": ["บด/เตรียมวัตถุดิบ", "ต้ม", "เป่าขวด-บรรจุ", "ยิงวันที่-แพ็ค", "แร็ปพาเลท"],
+            "บรรจุ 1 (พริกเผา)": ["2700 g", "900 g", "450 g", "1000 g", "800 g", "500 g","ซองใส retort (500 g)","16 oz", "8 oz", "4 oz", "2 oz", "น้ำมันพริกเผา 720 ml","น้ำมันพริกเผา 190 ml","น้ำมันพริกเผา 120 ml","รอบนอก"],
+            "บรรจุ 2 (ซอสหลัก-ซอสรอง)": ["บรรจุซอง 1000 g", "บรรจุซองจิ๋ว", "บรรจุขวด", "บรรจุขวด oz","บรรจุซองใส","บรรจุแกลลอน", "บรรจุแกลลอนพิเศษ", "รอบนอก"],
+            "แพ็คพิเศษ": ["ชริ้งค์คอขวด+ยิงวันที่", "ชริ้งค์คอขวด+ยิงงวันที่+ติดสติ๊กเกอร์", "ชริ้งค์คอขวด+ติดสติ๊กเกอร์+แพ็ค 3/แพ็ค 6", "แพ็ค 3/แพ็ค 6","อบฟิล์มสุกี้","รอบนอก", "ออนไลน์"]
+        };
+
+        const TOTAL_OPERATORS = 12; 
+        
+        const todayStr = new Date().toISOString().split('T')[0];
+        document.getElementById('docDate').value = todayStr;
+        document.getElementById('historyStartDate').value = todayStr;
+        document.getElementById('historyEndDate').value = todayStr;
+        document.getElementById('dashStartDate').value = todayStr;
+        document.getElementById('dashEndDate').value = todayStr;
+
+        function resetHistoryDates() {
+            document.getElementById('historyStartDate').value = todayStr;
+            document.getElementById('historyEndDate').value = todayStr;
+            displayLogs();
+        }
+
+        function resetDashDates() {
+            document.getElementById('dashStartDate').value = todayStr;
+            document.getElementById('dashEndDate').value = todayStr;
+            calculateDashboard();
+        }
+
+        function navigateTo(pageId) {
+            document.querySelectorAll('.main-page').forEach(page => page.classList.add('hidden'));
+            document.getElementById(`page-${pageId}`).classList.remove('hidden');
+
+            const navRecordBtn = document.getElementById('navRecordBtn');
+            const navHistoryBtn = document.getElementById('navHistoryBtn');
+            const navDashboardBtn = document.getElementById('navDashboardBtn');
+
+            navRecordBtn.className = "hover:text-indigo-300 font-medium px-2.5 py-1.5 rounded transition-colors";
+            navHistoryBtn.className = "hover:text-indigo-300 font-medium px-2.5 py-1.5 rounded transition-colors";
+            navDashboardBtn.className = "hover:text-indigo-300 font-medium px-2.5 py-1.5 rounded transition-colors";
+
+            if (pageId === 'record') {
+                navRecordBtn.classList.add('text-amber-400', 'bg-slate-700/60', 'font-semibold');
+            } else if (pageId === 'history') {
+                navHistoryBtn.classList.add('text-amber-400', 'bg-slate-700/60', 'font-semibold');
+                displayLogs();
+            } else if (pageId === 'dashboard') {
+                navDashboardBtn.classList.add('text-amber-400', 'bg-slate-700/60', 'font-semibold');
+                calculateDashboard();
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function generateFormByDepartment() {
+            const selectedDept = document.getElementById('mainDeptSelect').value;
+            const desktopTable = document.getElementById('desktopTable');
+            const mobileContainer = document.getElementById('mobileContainer');
+            const emptyState = document.getElementById('emptyState');
+            const submitContainer = document.getElementById('submitContainer');
+            const configContainer = document.getElementById('totalStaffConfigContainer');
+            const configDeptLabel = document.getElementById('configDeptLabel');
+
+            if (!selectedDept) {
+                emptyState.classList.remove('hidden');
+                submitContainer.classList.add('hidden');
+                configContainer.classList.add('hidden');
+                desktopTable.innerHTML = "";
+                mobileContainer.innerHTML = "";
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            submitContainer.classList.remove('hidden');
+            configContainer.classList.remove('hidden');
+            configDeptLabel.innerText = selectedDept;
+            document.getElementById('deptTotalStaffInput').value = "0";
+
+            desktopTable.innerHTML = ""; 
+            mobileContainer.innerHTML = "";
+
+            const subSections = departmentData[selectedDept];
+            
+            if (subSections) {
+                let tableHtml = `
+                    <colgroup>
+                        <col class="w-32 md:w-40">
+                        ${subSections.map(() => '<col class="min-w-[160px] md:min-w-[190px]">').join('')}
+                    </colgroup>
+                    <thead>
+                        <tr class="bg-slate-700 text-white text-xs md:text-sm tracking-wider sticky-header">
+                            <th class="py-3 px-2 font-semibold text-center sticky-col border-r border-slate-600 bg-slate-800">รายชื่อกำลังพล</th>
+                `;
+                
+                subSections.forEach(subSection => {
+                    tableHtml += `
+                        <th class="py-3 px-2 font-semibold text-center border-r border-slate-600">
+                            <span class="text-xs font-bold text-amber-300 break-words">${subSection}</span>
+                        </th>
+                    `;
+                });
+                tableHtml += `</tr></thead><tbody class="divide-y divide-slate-200 text-sm">`;
+
+                for (let opIdx = 1; opIdx <= TOTAL_OPERATORS; opIdx++) {
+                    tableHtml += `
+                        <tr class="hover:bg-slate-50/80 transition-colors duration-100">
+                            <td class="py-2.5 px-2 font-bold text-slate-700 sticky-col text-center border-r border-slate-200 bg-slate-50 text-xs md:text-sm">
+                                คนที่ ${opIdx}
+                            </td>
+                    `;
+                    subSections.forEach((subSection, sectionIdx) => {
+                        tableHtml += `
+                            <td class="p-1 border-r border-slate-200">
+                                <input type="text" 
+                                    data-section="${sectionIdx}" 
+                                    data-op="${opIdx}" 
+                                    data-dept="${selectedDept}"
+                                    data-sub="${subSection}"
+                                    class="row-op border border-slate-300 rounded-lg px-2 py-1.5 text-xs text-center w-full focus:ring-2 focus:ring-indigo-500 outline-none" 
+                                    placeholder="ระบุชื่อ (แผนกเดิม)" 
+                                    oninput="syncInput(this, 'mobile', ${sectionIdx}, ${opIdx})">
+                            </td>
+                        `;
+                    });
+                    tableHtml += `</tr>`;
+                }
+                tableHtml += `</tbody>`;
+                desktopTable.innerHTML = tableHtml;
+
+                subSections.forEach((subSection, sectionIdx) => {
+                    const card = document.createElement('div');
+                    card.className = "bg-white border border-slate-200 rounded-xl p-3.5 shadow-sm";
+
+                    let cardInputsHtml = "";
+                    for(let opIdx = 1; opIdx <= TOTAL_OPERATORS; opIdx++) {
+                        cardInputsHtml += `
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-400 font-semibold w-14 shrink-0">คนที่ ${opIdx}:</span>
+                                <input type="text" 
+                                    data-section="${sectionIdx}" 
+                                    data-op="${opIdx}" 
+                                    class="row-op-mobile border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs w-full focus:ring-2 focus:ring-indigo-500 outline-none" 
+                                    placeholder="ระบุชื่อ (แผนกเดิม)" 
+                                    oninput="syncInput(this, 'desktop', ${sectionIdx}, ${opIdx})">
+                            </div>
+                        `;
+                    }
+
+                    card.innerHTML = `
+                        <div class="border-b border-slate-100 pb-2 mb-2.5">
+                            <span class="text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md">${subSection}</span>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            ${cardInputsHtml}
+                        </div>
+                    `;
+                    mobileContainer.appendChild(card);
+                });
+            }
+        }
+
+        function syncInput(element, target, sectionIdx, opIdx) {
+            const val = element.value;
+            if(target === 'mobile') {
+                const targetInput = document.querySelector(`.row-op-mobile[data-section="${sectionIdx}"][data-op="${opIdx}"]`);
+                if(targetInput) targetInput.value = val;
+            } else {
+                const targetInput = document.querySelector(`.row-op[data-section="${sectionIdx}"][data-op="${opIdx}"]`);
+                if(targetInput) targetInput.value = val;
+            }
+        }
+
+        // ==================== ฟังก์ชันประมวลผลคำนวณแบบค่าเฉลี่ยต่อวัน (แก้เป็นเลขจำนวนเต็ม) ====================
+        function calculateDashboard() {
+            const startDate = document.getElementById('dashStartDate').value;
+            const endDate = document.getElementById('dashEndDate').value;
+            const targetShift = document.getElementById('dashFilterShift').value;
+            const logs = JSON.parse(localStorage.getItem('production_logs_v6')) || [];
+
+            // 1. กรองข้อมูลตามช่วงวันที่เลือก
+            let filteredLogs = logs.filter(log => {
+                if (!log.date) return false;
+                if (startDate && log.date < startDate) return false;
+                if (endDate && log.date > endDate) return false;
+                return true;
+            });
+
+            if (targetShift !== 'ทั้งหมด') {
+                filteredLogs = filteredLogs.filter(log => log.shift === targetShift);
+            }
+
+            // 2. หาวันที่มีการบันทึกข้อมูลจริงเพื่อใช้เป็นตัวหาร
+            const uniqueDates = [...new Set(filteredLogs.map(log => log.date))];
+            const totalDays = uniqueDates.length || 1; 
+
+            document.getElementById('countedDaysLabel').innerText = `คำนวณจากฐานข้อมูล: ${uniqueDates.length} วัน`;
+
+            let totalActualSum = 0;   
+            let totalRequiredSum = 0; 
+            let totalBorrowedSum = 0;
+            
+            let deptActualSum = {};
+            let deptRequiredSum = {};
+            let deptInboundSum = {};  
+            let deptOutboundSum = {}; 
+            let borrowedList = [];      
+
+            Object.keys(departmentData).forEach(dept => {
+                deptActualSum[dept] = 0;
+                deptRequiredSum[dept] = 0;
+                deptInboundSum[dept] = 0;
+                deptOutboundSum[dept] = 0;
+            });
+
+            // คำนวณผลรวมสะสม
+            filteredLogs.forEach(log => {
+                const count = log.operators ? log.operators.length : 0;
+                totalActualSum += count;
+                if (deptActualSum.hasOwnProperty(log.department)) {
+                    deptActualSum[log.department] += count;
+                }
+
+                if(log.operators) {
+                    log.operators.forEach(name => {
+                        const match = name.match(/([^(]+)\(([^)]+)\)/); 
+                        if(match) {
+                            totalBorrowedSum++;
+                            const parsedName = match[1].trim();
+                            const fromDept = match[2].trim();
+                            const toDept = log.department;
+
+                            borrowedList.push({
+                                date: log.date,
+                                name: parsedName,
+                                fromDept: fromDept,
+                                toDept: toDept,
+                                section: log.section,
+                                shift: log.shift
+                            });
+
+                            if (deptInboundSum.hasOwnProperty(toDept)) {
+                                deptInboundSum[toDept]++;
+                            }
+                            if (deptOutboundSum.hasOwnProperty(fromDept)) {
+                                deptOutboundSum[fromDept]++;
+                            }
+                        }
+                    });
+                }
+            });
+
+            let deptReqMap = {};
+            filteredLogs.forEach(log => {
+                const key = `${log.date}_${log.department}_${log.shift}`;
+                if (!deptReqMap[key]) {
+                    deptReqMap[key] = parseInt(log.deptTotalRequired || 0);
+                }
+            });
+            
+            Object.keys(deptReqMap).forEach(key => {
+                const parts = key.split('_');
+                const deptName = parts[1];
+                deptRequiredSum[deptName] += deptReqMap[key];
+            });
+
+            Object.keys(departmentData).forEach(dept => {
+                totalRequiredSum += deptRequiredSum[dept];
+            });
+
+            let totalMissingSum = totalRequiredSum - totalActualSum;
+            if (totalMissingSum < 0) totalMissingSum = 0;
+
+            // 3. แปลงเป็น "ค่าเฉลี่ยต่อวัน" ปัดเศษเป็นจำนวนเต็ม (.toFixed(0))
+            const avgActual = (totalActualSum / totalDays).toFixed(0);
+            const avgRequired = (totalRequiredSum / totalDays).toFixed(0);
+            const avgMissing = (totalMissingSum / totalDays).toFixed(0);
+            const avgBorrowed = (totalBorrowedSum / totalDays).toFixed(0);
+
+            document.getElementById('dashTotalStaff').innerText = `${avgActual} คน`;
+            document.getElementById('dashTotalRequired').innerText = `${avgRequired} คน`;
+            document.getElementById('dashTotalMissing').innerText = `${avgMissing} คน`;
+            document.getElementById('dashTotalBorrowed').innerText = `${avgBorrowed} คน`;
+
+            // 4. สร้างแผนภูมิสรุปรายแผนกหลัก (แบบจำนวนเต็ม)
+            const graphContainer = document.getElementById('chartGraphContainer');
+            graphContainer.innerHTML = "";
+
+            Object.keys(departmentData).forEach(dept => {
+                const deptAvgActual = Math.round(deptActualSum[dept] / totalDays);
+                const deptAvgRequired = Math.round(deptRequiredSum[dept] / totalDays);
+                
+                let deptAvgMissing = deptAvgRequired - deptAvgActual;
+                if (deptAvgMissing < 0) deptAvgMissing = 0;
+
+                const maxBarUnits = Math.max(deptAvgRequired, deptAvgActual, 1);
+                const actualPercent = Math.round((deptAvgActual / maxBarUnits) * 100);
+                const missingPercent = Math.round((deptAvgMissing / maxBarUnits) * 100);
+                const hasData = deptAvgRequired > 0 || deptAvgActual > 0;
+                
+                const rowHtml = `
+                    <div class="flex flex-col md:flex-row md:items-center gap-1 md:gap-4 border-b border-slate-50 pb-2 last:border-none">
+                        <div class="w-full md:w-60 shrink-0">
+                            <div class="text-xs font-bold text-slate-800">${dept}</div>
+                            <div class="text-[11px] text-slate-500 mt-0.5">
+                                เฉลี่ยมา <span class="font-bold text-indigo-600">${deptAvgActual}</span> คน/วัน | โควต้าเฉลี่ย ${deptAvgRequired} คน/วัน
+                            </div>
+                        </div>
+                        <div class="flex-1 bg-slate-100 rounded-xl h-7 flex overflow-hidden border border-slate-200/40 relative items-center">
+                            ${deptAvgActual > 0 ? `
+                                <div class="bg-gradient-to-r from-indigo-500 to-indigo-600 h-full flex items-center pl-3 transition-all duration-500" style="width: ${actualPercent}%">
+                                    <span class="text-[10px] font-bold text-white whitespace-nowrap">เฉลี่ยมา ${deptAvgActual} คน</span>
+                                </div>
+                            ` : ''}
+                            ${deptAvgMissing > 0 ? `
+                                <div class="bg-rose-200/80 h-full flex items-center pl-3 border-l border-white/40 transition-all duration-500" style="width: ${missingPercent}%">
+                                    <span class="text-[10px] font-bold text-rose-700 whitespace-nowrap">เฉลี่ยขาด ${deptAvgMissing} คน</span>
+                                </div>
+                            ` : ''}
+                            ${!hasData ? `<span class="text-[11px] text-slate-300 w-full text-center">ไม่มีบันทึกในช่วงนี้</span>` : ''}
+                        </div>
+                        <div class="w-28 text-right text-xs shrink-0 font-medium">
+                            ${deptAvgMissing > 0 ? `<span class="text-rose-600 font-bold bg-rose-50 px-2 py-0.5 rounded border border-rose-100">ขาด ${deptAvgMissing} คน</span>` : 
+                              (hasData ? `<span class="text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">คนครบพอดี</span>` : `<span class="text-slate-400">-</span>`)}
+                        </div>
+                    </div>
+                `;
+                graphContainer.insertAdjacentHTML('beforeend', rowHtml);
+            });
+
+            // 5. สร้างแผนภูมิการโยกย้ายกำลังพลข้ามแผนก (แบบจำนวนเต็ม)
+            const transferGraphContainer = document.getElementById('transferGraphContainer');
+            transferGraphContainer.innerHTML = "";
+
+            let maxTransferAvg = 1;
+            Object.keys(departmentData).forEach(dept => {
+                const inboundAvg = Math.round(deptInboundSum[dept] / totalDays);
+                const outboundAvg = Math.round(deptOutboundSum[dept] / totalDays);
+                if(inboundAvg > maxTransferAvg) maxTransferAvg = inboundAvg;
+                if(outboundAvg > maxTransferAvg) maxTransferAvg = outboundAvg;
+            });
+
+            let totalTransferRecords = 0;
+            Object.keys(departmentData).forEach(dept => {
+                const inboundAvg = Math.round(deptInboundSum[dept] / totalDays);
+                const outboundAvg = Math.round(deptOutboundSum[dept] / totalDays);
+                
+                if(inboundAvg > 0 || outboundAvg > 0) totalTransferRecords++;
+
+                const inboundPercent = Math.round((inboundAvg / maxTransferAvg) * 100);
+                const outboundPercent = Math.round((outboundAvg / maxTransferAvg) * 100);
+
+                const tfHtml = `
+                    <div class="flex flex-col md:flex-row md:items-center gap-2 md:gap-4 border-b border-slate-200/40 pb-3 last:border-none last:pb-0">
+                        <div class="w-full md:w-56 shrink-0 font-bold text-xs text-slate-700">
+                            ${dept}
+                        </div>
+                        <div class="flex-1 space-y-1.5">
+                            <div class="flex items-center gap-2">
+                                <div class="w-24 text-[11px] text-emerald-600 font-semibold whitespace-nowrap">เฉลี่ยรับย้าย: ${inboundAvg} คน/วัน</div>
+                                <div class="flex-1 bg-slate-200/60 rounded-lg h-3.5 overflow-hidden">
+                                    ${inboundAvg > 0 ? `<div class="bg-gradient-to-r from-emerald-400 to-emerald-500 h-full rounded-lg transition-all duration-500" style="width: ${inboundPercent}%"></div>` : ''}
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="w-24 text-[11px] text-orange-600 font-semibold whitespace-nowrap">เฉลี่ยส่งออก: ${outboundAvg} คน/วัน</div>
+                                <div class="flex-1 bg-slate-200/60 rounded-lg h-3.5 overflow-hidden">
+                                    ${outboundAvg > 0 ? `<div class="bg-gradient-to-r from-orange-400 to-amber-500 h-full rounded-lg transition-all duration-500" style="width: ${outboundPercent}%"></div>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                transferGraphContainer.insertAdjacentHTML('beforeend', tfHtml);
+            });
+
+            if(totalTransferRecords === 0) {
+                transferGraphContainer.innerHTML = `<div class="text-center py-4 text-xs text-slate-400 font-medium">ไม่มีข้อมูลกำลังพลโยกย้ายข้ามแผนกที่จะนำมาแสดงบนกราฟในช่วงนี้</div>`;
+            }
+
+            // 6. แสดงตารางประวัติผู้โยกย้ายข้ามแผนก
+            const borrowedTbody = document.getElementById('borrowedStaffTableBody');
+            if(borrowedList.length === 0) {
+                borrowedTbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">ไม่มีข้อมูลการโยกย้ายกำลังพลในช่วงเวลานี้</td></tr>`;
+            } else {
+                borrowedList.sort((a,b) => b.date.localeCompare(a.date));
+
+                borrowedTbody.innerHTML = borrowedList.map(item => `
+                    <tr class="hover:bg-amber-50/40 text-xs border-b border-slate-100 last:border-none">
+                        <td class="p-2.5 font-medium text-slate-500 whitespace-nowrap">${formatDate(item.date)}</td>
+                        <td class="p-2.5 font-bold text-slate-800">${item.name}</td>
+                        <td class="p-2.5"><span class="bg-rose-50 text-rose-700 font-semibold px-2 py-0.5 rounded border border-rose-100">${item.fromDept}</span></td>
+                        <td class="p-2.5 font-semibold text-indigo-700">${item.toDept}</td>
+                        <td class="p-2.5 text-slate-500 font-medium">${item.section}</td>
+                        <td class="p-2.5 text-center">
+                            <span class="${item.shift === 'กะเช้า' ? 'text-amber-700 bg-amber-50' : 'text-blue-700 bg-blue-50'} px-1.5 py-0.5 rounded font-bold text-[10px]">
+                                ${item.shift}
+                            </span>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        function displayLogs() {
+            const startDate = document.getElementById('historyStartDate').value;
+            const endDate = document.getElementById('historyEndDate').value;
+            const logs = JSON.parse(localStorage.getItem('production_logs_v6')) || [];
+            const tbody = document.getElementById('logTableBody');
+            
+            let filteredLogs = logs.filter(log => {
+                if (!log.date) return false;
+                if (startDate && log.date < startDate) return false;
+                if (endDate && log.date > endDate) return false;
+                return true;
+            });
+
+            if (filteredLogs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400">ไม่พบประวัติการบันทึกข้อมูลในช่วงวันที่เลือก</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = [...filteredLogs].reverse().map(log => `
+                <tr class="hover:bg-slate-50 text-xs border-b border-slate-100 last:border-none">
+                    <td class="p-3 font-medium text-slate-900 whitespace-nowrap">${formatDate(log.date)}</td>
+                    <td class="p-3 whitespace-nowrap">
+                        <span class="${log.shift === 'กะเช้า' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-blue-50 text-blue-700 border-blue-200'} border px-1.5 py-0.5 rounded text-[11px] font-semibold">${log.shift}</span>
+                    </td>
+                    <td class="p-3 font-semibold text-slate-700">${log.department}</td>
+                    <td class="p-3"><span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[11px]">${log.section}</span></td>
+                    <td class="p-3 text-center font-bold text-indigo-600">${log.operators.length} คน</td>
+                    <td class="p-3 text-slate-600 font-medium">${log.operators.join(', ') || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            return new Date(dateString).toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        document.getElementById('productionForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const selectedDate = document.getElementById('docDate').value;
+            const selectedShift = document.getElementById('docShift').value;
+            const selectedDept = document.getElementById('mainDeptSelect').value;
+            const deptTotalStaffInput = document.getElementById('deptTotalStaffInput').value;
+            
+            const totalRequiredForDept = parseInt(deptTotalStaffInput) || 0;
+
+            if (!selectedDate) {
+                alert('⚠️ กรุณาระบุวันที่ปฏิบัติงานก่อนดำเนินการบันทึกข้อมูลค่ะ');
+                return;
+            }
+
+            let newLogs = [];
+            const currentLogs = JSON.parse(localStorage.getItem('production_logs_v6')) || [];
+            const isMobile = window.getComputedStyle(document.getElementById('mobileContainer')).display !== 'none';
+            
+            let excelData = [
+                ["วันที่", "กะ", "แผนกหลัก", "ส่วนงานย่อย", "พนักงานทั้งหมดประจำแผนก", "จำนวนคนมาทำงานจริงในส่วนงานนี้", "พนักงานคนที่ 1", "พนักงานคนที่ 2", "พนักงานคนที่ 3", "พนักงานคนที่ 4", "พนักงานคนที่ 5", "พนักงานคนที่ 6", "พนักงานคนที่ 7", "พนักงานคนที่ 8", "พนักงานคนที่ 9", "พนักงานคนที่ 10", "พนักงานคนที่ 11", "พนักงานคนที่ 12"]
+            ];
+
+            const subSections = departmentData[selectedDept];
+
+            subSections.forEach((subSection, sectionIdx) => {
+                let rowOperators = [];
+                let excelRowOps = Array(TOTAL_OPERATORS).fill("");
+
+                for(let opIdx = 1; opIdx <= TOTAL_OPERATORS; opIdx++) {
+                    let inputEl = !isMobile ? 
+                        document.querySelector(`.row-op[data-section="${sectionIdx}"][data-op="${opIdx}"]`) :
+                        document.querySelector(`.row-op-mobile[data-section="${sectionIdx}"][data-op="${opIdx}"]`);
+
+                    if(inputEl && inputEl.value.trim() !== "") {
+                        const name = inputEl.value.trim();
+                        rowOperators.push(name);
+                        excelRowOps[opIdx - 1] = name;
+                    }
+                }
+
+                if (rowOperators.length > 0 || totalRequiredForDept > 0) {
+                    newLogs.push({
+                        date: selectedDate,
+                        shift: selectedShift,
+                        department: selectedDept,
+                        section: subSection,
+                        deptTotalRequired: totalRequiredForDept,
+                        operators: rowOperators
+                    });
+
+                    excelData.push([
+                        selectedDate, selectedShift, selectedDept, subSection, totalRequiredForDept, rowOperators.length, ...excelRowOps
+                    ]);
+                }
+            });
+
+            if (newLogs.length === 0) {
+                alert('⚠️ กรุณาระบุชื่อพนักงาน หรือพนักงานทั้งหมดของแผนกอย่างน้อย 1 รายการค่ะ');
+                return;
+            }
+
+            localStorage.setItem('production_logs_v6', JSON.stringify([...currentLogs, ...newLogs]));
+            
+            const worksheet = XLSX.utils.aoa_to_sheet(excelData);
+            worksheet['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 20 }, { wch: 20 }, { wch: 25 }, { wch: 25 }, ...Array(TOTAL_OPERATORS).fill({ wch: 15 })];
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Staff Analysis Report");
+            XLSX.writeFile(workbook, `รายงานวิเคราะห์แผนก_${selectedDept}_${selectedDate}.xlsx`);
+
+            document.getElementById('mainDeptSelect').value = "";
+            generateFormByDepartment();
+            
+            alert(`🎉 บันทึกสำเร็จและดาวน์โหลด Excel แล้ว!\nระบบจะสลับไปยังหน้า Dashboard เพื่อดูค่าเฉลี่ยทันทีครับ`);
+            
+            document.getElementById('dashStartDate').value = selectedDate;
+            document.getElementById('dashEndDate').value = selectedDate;
+            navigateTo('dashboard');
+        });
+
+        function clearLogs() {
+            if (confirm('คุณต้องการล้างประวัติทั้งหมดบนเครื่องนี้ใช่หรือไม่?')) {
+                localStorage.removeItem('production_logs_v6');
+                displayLogs();
+                calculateDashboard();
+            }
+        }
+
+        navigateTo('record');
+    </script>
+</body>
+</html>
